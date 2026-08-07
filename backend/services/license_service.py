@@ -2,7 +2,7 @@ import os
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
-from psycopg2.extras import RealDictCursor
+from utils.database import get_db
 from utils.device import get_device_hash
 
 SECRET_KEY = os.getenv("SECRET_KEY", "priscomac-secret-key-change-in-production")
@@ -24,10 +24,9 @@ def verify_session_token(token: str) -> Optional[dict]:
     except jwt.InvalidTokenError:
         return None
 
-def verify_license(conn, license_key: str, device_hash: str) -> Optional[dict]:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT id, product_name, status, max_devices, devices_used, demand_forecast_tool FROM licenses WHERE license_key = %s", (license_key,))
-        license = cur.fetchone()
+def verify_license(supabase, license_key: str, device_hash: str) -> Optional[dict]:
+    license = supabase.table("licenses").select("id, product_name, status, max_devices, devices_used, demand_forecast_tool").eq("license_key", license_key).execute().data
+    license = license[0] if license else None
 
     if not license:
         return {"valid": False, "error": "License key not found."}
@@ -39,21 +38,15 @@ def verify_license(conn, license_key: str, device_hash: str) -> Optional[dict]:
         return {"valid": False, "error": "License does not include Demand Forecast Tool access."}
 
     if license["devices_used"] >= license["max_devices"]:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id FROM device_activations WHERE license_id = %s AND device_hash = %s", (license["id"], device_hash))
-            existing = cur.fetchone()
+        existing = supabase.table("device_activations").select("id").eq("license_id", license["id"]).eq("device_hash", device_hash).execute().data
         if not existing:
             return {"valid": False, "error": "Device activation limit exceeded."}
 
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT id FROM device_activations WHERE license_id = %s AND device_hash = %s", (license["id"], device_hash))
-        existing_activation = cur.fetchone()
+    existing_activation = supabase.table("device_activations").select("id").eq("license_id", license["id"]).eq("device_hash", device_hash).execute().data
 
     if not existing_activation:
-        with conn.cursor() as cur:
-            cur.execute("INSERT INTO device_activations (license_id, device_hash) VALUES (%s, %s)", (license["id"], device_hash))
-            cur.execute("UPDATE licenses SET devices_used = devices_used + 1 WHERE id = %s", (license["id"],))
-        conn.commit()
+        supabase.table("device_activations").insert({"license_id": license["id"], "device_hash": device_hash}).execute()
+        supabase.table("licenses").update({"devices_used": license["devices_used"] + 1}).eq("id", license["id"]).execute()
 
     token = create_session_token(license["id"])
     return {
@@ -63,15 +56,14 @@ def verify_license(conn, license_key: str, device_hash: str) -> Optional[dict]:
         "license_id": license["id"],
     }
 
-def check_session(conn, token: str) -> Optional[dict]:
+def check_session(supabase, token: str) -> Optional[dict]:
     payload = verify_session_token(token)
     if not payload:
         return None
 
     license_id = int(payload.get("sub"))
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT product_name FROM licenses WHERE id = %s AND status = 'active'", (license_id,))
-        license = cur.fetchone()
+    license = supabase.table("licenses").select("product_name").eq("id", license_id).eq("status", "active").execute().data
+    license = license[0] if license else None
 
     if not license:
         return None
