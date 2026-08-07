@@ -1,25 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from utils.database import get_db
 from services.license_service import verify_license, check_session
 from services.data_processing import load_file, clean_data, compute_summary_stats, generate_forecast, recommended_reorder
 from services.chart_service import build_forecast_chart, build_summary_chart
 from services.pdf_service import generate_pdf_report
 from services.excel_service import generate_excel_report
+from utils.database import get_db
 import os
 
 router = APIRouter()
 
-def get_license_from_token(token: str, conn):
-    session = check_session(conn, token)
+def get_license_from_token(token: str, supabase):
+    session = check_session(supabase, token)
     if not session:
         raise HTTPException(status_code=401, detail="Invalid or expired session.")
     return session
 
 @router.post("/api/verify-license")
-def verify_license_endpoint(license_key: str = Form(...), conn = Depends(get_db)):
+def verify_license_endpoint(license_key: str = Form(...), supabase = Depends(get_db)):
     from utils.device import get_device_hash
     device_hash = get_device_hash()
-    result = verify_license(conn, license_key, device_hash)
+    result = verify_license(supabase, license_key, device_hash)
     if not result["valid"]:
         raise HTTPException(status_code=403, detail=result["error"])
     return result
@@ -29,9 +29,9 @@ def analyze_file(
     file: UploadFile = File(...),
     forecast_period: int = Form(30),
     token: str = Form(...),
-    conn = Depends(get_db)
+    supabase = Depends(get_db)
 ):
-    session = get_license_from_token(token, conn)
+    session = get_license_from_token(token, supabase)
     if not session:
         raise HTTPException(status_code=401, detail="Invalid or expired session.")
 
