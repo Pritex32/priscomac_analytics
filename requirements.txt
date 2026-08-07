@@ -11,3 +11,4 @@ prophet==1.1.5
 plotly==5.18.0
 reportlab==4.0.7
 python-dotenv==1.0.0
+jwt
