@@ -2,8 +2,8 @@ import os
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
-from utils.database import get_db
-from utils.device import get_device_hash
+from backend.utils.database import get_db
+from backend.utils.device import get_device_hash
 
 SECRET_KEY = os.getenv("SECRET_KEY", "priscomac-secret-key-change-in-production")
 ALGORITHM = "HS256"
