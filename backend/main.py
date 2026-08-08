@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from backend.api.router import router as api_router
+from api.router import router as api_router
 import os
 
 app = FastAPI(title="Priscomac Analytics", version="1.0.0")
@@ -17,8 +17,18 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api")
 
-frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-if os.path.exists(frontend_dist):
+frontend_dist = os.getenv("FRONTEND_DIST")
+if not frontend_dist:
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "https://priscomac-analytics-frontend.vercel.app/", "priscomac_analytics_frontend-main", "frontend", "dist"),
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            frontend_dist = candidate
+            break
+
+if frontend_dist and os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="frontend-assets")
 
     @app.get("/{full_path:path}")
