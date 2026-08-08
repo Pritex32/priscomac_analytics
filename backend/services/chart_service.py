@@ -2,6 +2,8 @@ import plotly.graph_objects as go
 import plotly.utils
 import json
 from typing import Dict, Any
+import pandas as pd
+import numpy as np
 
 def build_forecast_chart(original: pd.DataFrame, forecast: pd.DataFrame) -> Dict[str, Any]:
     fig = go.Figure()
