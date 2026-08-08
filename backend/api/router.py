@@ -4,7 +4,7 @@ from backend.services.data_processing import load_file, clean_data, compute_summ
 from backend.services.chart_service import build_forecast_chart, build_summary_chart
 from backend.services.pdf_service import generate_pdf_report
 from backend.services.excel_service import generate_excel_report
-from utils.database import get_db
+from backend.utils.database import get_db
 import os
 
 router = APIRouter()
