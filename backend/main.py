@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from api.router import router as api_router
+from backend.api.router import router as api_router
 import os
 
 app = FastAPI(title="Priscomac Analytics", version="1.0.0")
