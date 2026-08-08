@@ -4,7 +4,7 @@ from backend.services.data_processing import load_file, clean_data, compute_summ
 from backend.services.chart_service import build_forecast_chart, build_summary_chart
 from backend.services.pdf_service import generate_pdf_report
 from backend.services.excel_service import generate_excel_report
-from backend.utils.database import get_db
+from utils.database import get_db
 import os
 
 router = APIRouter()
@@ -15,7 +15,7 @@ def get_license_from_token(token: str, supabase):
         raise HTTPException(status_code=401, detail="Invalid or expired session.")
     return session
 
-@router.post("/api/verify-license")
+@router.post("/verify-license")
 def verify_license_endpoint(license_key: str = Form(...), supabase = Depends(get_db)):
     from utils.device import get_device_hash
     device_hash = get_device_hash()
@@ -24,7 +24,7 @@ def verify_license_endpoint(license_key: str = Form(...), supabase = Depends(get
         raise HTTPException(status_code=403, detail=result["error"])
     return result
 
-@router.post("/api/analyze")
+@router.post("/analyze")
 def analyze_file(
     file: UploadFile = File(...),
     forecast_period: int = Form(30),
