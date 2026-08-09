@@ -25,7 +25,7 @@ def verify_session_token(token: str) -> Optional[dict]:
         return None
 
 def verify_license(supabase, license_key: str, device_hash: str) -> Optional[dict]:
-    license = supabase.table("licenses").select("id, product_name, status, max_devices, devices_used, demand_forecast_tool").eq("license_key", license_key).execute().data
+    license = supabase.table("licenses").select("id, product_name, status, max_devices, devices_used, demand_forecast_tool, expires_at").eq("license_key", license_key).execute().data
     license = license[0] if license else None
 
     if not license:
@@ -33,6 +33,11 @@ def verify_license(supabase, license_key: str, device_hash: str) -> Optional[dic
 
     if license["status"] != "active":
         return {"valid": False, "error": "License is not active."}
+
+    expires_at = license.get("expires_at")
+    if expires_at:
+        if datetime.utcnow() > datetime.fromisoformat(expires_at.replace("Z", "+00:00")):
+            return {"valid": False, "error": "License has expired."}
 
     if not license["demand_forecast_tool"]:
         return {"valid": False, "error": "License does not include Demand Forecast Tool access."}
@@ -62,10 +67,15 @@ def check_session(supabase, token: str) -> Optional[dict]:
         return None
 
     license_id = int(payload.get("sub"))
-    license = supabase.table("licenses").select("product_name").eq("id", license_id).eq("status", "active").execute().data
+    license = supabase.table("licenses").select("product_name, expires_at").eq("id", license_id).eq("status", "active").execute().data
     license = license[0] if license else None
 
     if not license:
         return None
+
+    expires_at = license.get("expires_at")
+    if expires_at:
+        if datetime.utcnow() > datetime.fromisoformat(expires_at.replace("Z", "+00:00")):
+            return None
 
     return {"license_id": license_id, "product": license["product_name"]}
