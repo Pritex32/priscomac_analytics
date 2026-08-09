@@ -6,6 +6,7 @@ import requests
 from datetime import datetime
 from typing import Optional
 from backend.utils.database import supabase
+import date, datetime, timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ def generate_license_key() -> str:
 
 
 def create_license(supabase, license_key: str, product_name: str = PRODUCT_NAME) -> dict:
+    expires_at = datetime.utcnow() + timedelta(days=365)
     data = {
         "license_key": license_key,
         "product_name": product_name,
@@ -33,6 +35,7 @@ def create_license(supabase, license_key: str, product_name: str = PRODUCT_NAME)
         "max_devices": 1,
         "devices_used": 0,
         "demand_forecast_tool": True,
+        "expires_at": expires_at.isoformat(),
     }
     result = supabase.table("licenses").insert(data).execute()
     return result.data[0] if result.data else data
