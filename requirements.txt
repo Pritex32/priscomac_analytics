@@ -13,3 +13,4 @@ reportlab==4.0.7
 python-dotenv==1.0.0
 PyJWT
 utils
+requests
