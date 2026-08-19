@@ -4,6 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from backend.api.router import router as api_router
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 app = FastAPI(title="Priscomac Analytics", version="1.0.0")
 
