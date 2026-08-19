@@ -6,7 +6,7 @@ import requests
 from datetime import datetime
 from typing import Optional
 from backend.utils.database import supabase
-import date, datetime, timestamp
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
