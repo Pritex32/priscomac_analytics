@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form,requests
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form,request
 from backend.services.license_service import verify_license, check_session
 from backend.services.data_processing import load_file, clean_data, compute_summary_stats, generate_forecast, recommended_reorder
 from backend.services.chart_service import build_forecast_chart, build_summary_chart
@@ -7,7 +7,7 @@ from backend.services.excel_service import generate_excel_report
 from backend.services.payment_service import init_paystack_payment, verify_paystack_payment, handle_paystack_webhook
 from backend.utils.database import get_db
 import os
-import requests
+
 
 router = APIRouter()
 
@@ -97,7 +97,7 @@ def paystack_verify(reference: str, supabase = Depends(get_db)):
 
 
 @router.post("/paystack/webhook")
-async def paystack_webhook(request: Requests, supabase = Depends(get_db)):
+async def paystack_webhook(request: Request, supabase = Depends(get_db)):
     try:
         payload = await request.json()
     except Exception:
