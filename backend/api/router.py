@@ -97,7 +97,7 @@ def paystack_verify(reference: str, supabase = Depends(get_db)):
 
 
 @router.post("/paystack/webhook")
-async def paystack_webhook(request: Request, supabase = Depends(get_db)):
+async def paystack_webhook(request: Requests, supabase = Depends(get_db)):
     try:
         payload = await request.json()
     except Exception:
