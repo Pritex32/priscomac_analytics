@@ -15,10 +15,14 @@ PAYSTACK_BASE_URL = os.getenv("PAYSTACK_BASE_URL", "https://api.paystack.co")
 USD_PRICE_CENTS = int(os.getenv("LICENSE_USD_PRICE_CENTS", "3000"))
 PRODUCT_NAME = os.getenv("LICENSE_PRODUCT_NAME", "Demand Forecast Tool")
 
-headers = {
-    "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-    "Content-Type": "application/json",
-}
+def get_paystack_headers():
+    if not PAYSTACK_SECRET_KEY:
+        logger.error("PAYSTACK_SECRET_KEY is not configured.")
+        raise RuntimeError("PAYSTACK_SECRET_KEY is not configured.")
+    return {
+        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
 
 
 def generate_license_key() -> str:
@@ -73,7 +77,7 @@ def init_paystack_payment(email: str) -> dict:
     resp = requests.post(
         f"{PAYSTACK_BASE_URL}/transaction/initialize",
         json=payload,
-        headers=headers,
+        headers=get_paystack_headers(),
         timeout=30,
     )
     resp.raise_for_status()
@@ -95,7 +99,7 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
 
     resp = requests.get(
         f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
-        headers=headers,
+        headers=get_paystack_headers(),
         timeout=30,
     )
     resp.raise_for_status()
