@@ -82,7 +82,7 @@ def paystack_init(email: str = Form(...), supabase = Depends(get_db)):
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Payment initialization failed.")
+        raise HTTPException(status_code=500, detail=f"Payment initialization failed: {str(e)}")
 
 
 @router.get("/paystack/verify/{reference}")
