@@ -100,19 +100,26 @@ def init_paystack_payment(email: str) -> dict:
 
 def verify_paystack_payment(reference: str, supabase) -> dict:
     if not PAYSTACK_SECRET_KEY:
-        message = data.get("message") or "Unknown error"
-        raise RuntimeError(f"Paystack verify failed: {message}")
+        raise RuntimeError("PAYSTACK_SECRET_KEY is not configured.")
 
-    resp = requests.get(
-        f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
-        headers=get_paystack_headers(),
-        timeout=30,
-    )
-    resp.raise_for_status()
-    data = resp.json()
+    try:
+        resp = requests.get(
+            f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
+            headers=get_paystack_headers(),
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Paystack verify request failed for reference={reference}: {e}")
+        return {"success": False, "paid": False, "error": f"Payment gateway error: {str(e)}"}
+    except ValueError as e:
+        logger.error(f"Paystack verify JSON parse failed for reference={reference}: {e}")
+        return {"success": False, "paid": False, "error": "Invalid response from payment gateway."}
 
     if not data.get("status"):
-        raise RuntimeError(f"Paystack verify failed: {data.get('message')}")
+        message = data.get("message") or "Unknown error"
+        return {"success": False, "paid": False, "error": f"Paystack verify failed: {message}"}
 
     paystack_data = data.get("data", {})
     payment_status = paystack_data.get("status")
@@ -146,65 +153,69 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
     if amount != NGN_PRICE_KOBO:
         return {"success": False, "paid": False, "error": f"Invalid amount. Expected {NGN_PRICE_KOBO} kobo, got {amount}."}
 
-    existing = (
-        supabase.table("license_purchases")
-        .select("id, status, license_id")
-        .eq("paystack_reference", reference)
-        .execute()
-        .data
-    )
-    purchase = existing[0] if existing else None
-
-    if purchase and purchase.get("license_id"):
-        license_row = (
-            supabase.table("licenses")
-            .select("license_key")
-            .eq("id", purchase["license_id"])
+    try:
+        existing = (
+            supabase.table("license_purchases")
+            .select("id, status, license_id")
+            .eq("paystack_reference", reference)
             .execute()
             .data
         )
-        license_key = license_row[0]["license_key"] if license_row else None
-        return {
-            "success": True,
-            "paid": True,
-            "license": license_key,
-            "already_processed": True,
-        }
+        purchase = existing[0] if existing else None
 
-    if not purchase or not purchase.get("license_id"):
-        license_key = generate_license_key()
-        create_license(supabase, license_key, PRODUCT_NAME)
-        license_row = (
-            supabase.table("licenses")
-            .select("id")
-            .eq("license_key", license_key)
-            .execute()
-            .data
-        )
-        license_id = license_row[0]["id"] if license_row else None
+        if purchase and purchase.get("license_id"):
+            license_row = (
+                supabase.table("licenses")
+                .select("license_key")
+                .eq("id", purchase["license_id"])
+                .execute()
+                .data
+            )
+            license_key = license_row[0]["license_key"] if license_row else None
+            return {
+                "success": True,
+                "paid": True,
+                "license": license_key,
+                "already_processed": True,
+            }
 
-        purchase_data = {
-            "paystack_reference": reference,
-            "email": email,
-            "amount": amount,
-            "currency": currency,
-            "status": "success",
-            "license_id": license_id,
-            "metadata": metadata,
-        }
-        supabase.table("license_purchases").insert(purchase_data).execute()
+        if not purchase or not purchase.get("license_id"):
+            license_key = generate_license_key()
+            create_license(supabase, license_key, PRODUCT_NAME)
+            license_row = (
+                supabase.table("licenses")
+                .select("id")
+                .eq("license_key", license_key)
+                .execute()
+                .data
+            )
+            license_id = license_row[0]["id"] if license_row else None
 
-        logger.info(f"License Generated: {license_key}")
-        logger.info(f"License: {license_key}")
+            purchase_data = {
+                "paystack_reference": reference,
+                "email": email,
+                "amount": amount,
+                "currency": currency,
+                "status": "success",
+                "license_id": license_id,
+                "metadata": metadata,
+            }
+            supabase.table("license_purchases").insert(purchase_data).execute()
 
-        return {
-            "success": True,
-            "paid": True,
-            "license": license_key,
-            "already_processed": False,
-        }
+            logger.info(f"License Generated: {license_key}")
+            logger.info(f"License: {license_key}")
 
-    return {"success": False, "paid": False, "error": "Payment verification failed. Please contact support."}
+            return {
+                "success": True,
+                "paid": True,
+                "license": license_key,
+                "already_processed": False,
+            }
+
+        return {"success": False, "paid": False, "error": "Payment verification failed. Please contact support."}
+    except Exception as e:
+        logger.error(f"Paystack verify database error for reference={reference}: {e}\n{traceback.format_exc()}")
+        return {"success": False, "paid": False, "error": f"Database error during payment verification: {str(e)}"}
 
 
 def handle_paystack_webhook(payload: dict, supabase) -> dict:
