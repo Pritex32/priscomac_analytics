@@ -82,6 +82,8 @@ def init_paystack_payment(email: str) -> dict:
         headers=get_paystack_headers(),
         timeout=30,
     )
+    logger.info(f"Paystack status code: {resp.status_code}")
+    logger.info(f"Paystack response: {resp.text}")
     resp.raise_for_status()
     data = resp.json()
 
