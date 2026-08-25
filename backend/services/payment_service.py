@@ -9,6 +9,7 @@ from backend.utils.database import supabase
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
