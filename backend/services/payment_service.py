@@ -60,7 +60,7 @@ def init_paystack_payment(email: str) -> dict:
     if not PAYSTACK_SECRET_KEY:
         raise RuntimeError("PAYSTACK_SECRET_KEY is not configured.")
 
-    callback_url = "https://priscomac-analytics-frontend.vercel.app/')}/get-license"
+    callback_url = "https://priscomac-analytics-frontend.vercel.app/get-license"
 
     metadata = {
         "type": "license_purchase",
@@ -235,10 +235,10 @@ def handle_paystack_webhook(payload: dict, supabase) -> dict:
     if purchase and purchase.get("license_id"):
         return {"received": True, "processed": True, "already_processed": True}
 
-    if currency != "USD":
+    if currency != "NGN":
         return {"received": True, "processed": False, "error": "Invalid currency."}
 
-    if amount != USD_PRICE_CENTS:
+    if amount != NGN_PRICE_KOBO:
         return {"received": True, "processed": False, "error": "Invalid amount."}
 
     customer = paystack_data.get("customer", {})
@@ -258,6 +258,7 @@ def handle_paystack_webhook(payload: dict, supabase) -> dict:
         "metadata": metadata,
     }
     supabase.table("license_purchases").insert(purchase_data).execute()
+    
 
     logger.info(f"License Generated via webhook: {license_key}")
     logger.info(f"License: {license_key}")
