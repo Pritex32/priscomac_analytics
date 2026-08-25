@@ -204,7 +204,7 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
             "already_processed": False,
         }
 
-   return {"success": False, "paid": False, "error": "Payment verification failed. Please contact support."}
+    return {"success": False, "paid": False, "error": "Payment verification failed. Please contact support."}
 
 
 def handle_paystack_webhook(payload: dict, supabase) -> dict:
