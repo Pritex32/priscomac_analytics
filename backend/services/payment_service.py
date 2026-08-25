@@ -16,6 +16,7 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_BASE_URL = os.getenv("PAYSTACK_BASE_URL", "https://api.paystack.co")
 USD_PRICE_CENTS = int(os.getenv("LICENSE_USD_PRICE_CENTS", "3000"))
 PRODUCT_NAME = os.getenv("LICENSE_PRODUCT_NAME", "Demand Forecast Tool")
+NGN_PRICE_KOBO = 3000000 
 
 def get_paystack_headers():
     if not PAYSTACK_SECRET_KEY:
@@ -70,8 +71,8 @@ def init_paystack_payment(email: str) -> dict:
 
     payload = {
         "email": email,
-        "amount": USD_PRICE_CENTS,
-        "currency": "USD",
+        "amount": NGN_PRICE_KOBO,
+        "currency": "NGN",
         "callback_url": callback_url,
         "metadata": metadata,
     }
