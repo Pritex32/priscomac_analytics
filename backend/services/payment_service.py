@@ -100,7 +100,8 @@ def init_paystack_payment(email: str) -> dict:
 
 def verify_paystack_payment(reference: str, supabase) -> dict:
     if not PAYSTACK_SECRET_KEY:
-        raise RuntimeError("PAYSTACK_SECRET_KEY is not configured.")
+        message = data.get("message") or "Unknown error"
+        raise RuntimeError(f"Paystack verify failed: {message}")
 
     resp = requests.get(
         f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
@@ -137,13 +138,13 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
     )
 
     if payment_status != "success":
-        return {"success": False, "paid": False, "error": "Payment not successful."}
+        return {"success": False, "paid": False, "error": f"Payment not successful. Status: {payment_status}"}
 
     if currency != "NGN":
-        return {"success": False, "paid": False, "error": "Invalid currency. Expected USD."}
+        return {"success": False, "paid": False, "error": f"Invalid currency. Expected NGN, got {currency}."}
 
     if amount != NGN_PRICE_KOBO:
-        return {"success": False, "paid": False, "error": "Invalid amount."}
+        return {"success": False, "paid": False, "error": f"Invalid amount. Expected {NGN_PRICE_KOBO} kobo, got {amount}."}
 
     existing = (
         supabase.table("license_purchases")
@@ -203,7 +204,7 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
             "already_processed": False,
         }
 
-    return {"success": False, "paid": False, "error": "Payment verification failed."}
+   return {"success": False, "paid": False, "error": "Payment verification failed. Please contact support."}
 
 
 def handle_paystack_webhook(payload: dict, supabase) -> dict:
