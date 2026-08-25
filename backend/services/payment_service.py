@@ -60,10 +60,7 @@ def init_paystack_payment(email: str) -> dict:
     if not PAYSTACK_SECRET_KEY:
         raise RuntimeError("PAYSTACK_SECRET_KEY is not configured.")
 
-    callback_url = os.getenv(
-        "PAYSTACK_CALLBACK_URL",
-        f"{os.getenv('VITE_API_BASE_URL', 'https://priscomac-analytics.onrender.com')}/get-license",
-    )
+    callback_url = "https://priscomac-analytics-frontend.vercel.app/')}/get-license"
 
     metadata = {
         "type": "license_purchase",
