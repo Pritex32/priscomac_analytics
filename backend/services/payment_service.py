@@ -16,8 +16,9 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_BASE_URL = os.getenv("PAYSTACK_BASE_URL", "https://api.paystack.co")
 USD_PRICE_CENTS = int(os.getenv("LICENSE_USD_PRICE_CENTS", "3000"))
 PRODUCT_NAME = os.getenv("LICENSE_PRODUCT_NAME", "Demand Forecast Tool")
-NGN_PRICE_KOBO = 3000000 
-
+NGN_PRICE_KOBO = 5_000_000
+# Product is advertised as $30 USD
+PRODUCT_PRICE_USD = 30.00
 def get_paystack_headers():
     if not PAYSTACK_SECRET_KEY:
         logger.error("PAYSTACK_SECRET_KEY is not configured.")
@@ -67,6 +68,8 @@ def init_paystack_payment(email: str) -> dict:
     metadata = {
         "type": "license_purchase",
         "product": PRODUCT_NAME,
+        "price_usd": PRODUCT_PRICE_USD,
+        "paystack_amount_ngn": NGN_PRICE_KOBO,
     }
 
     payload = {
@@ -126,7 +129,8 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
         **{
             "User Email": email,
             "Product": metadata.get("product", PRODUCT_NAME),
-            "USD Price": f"${USD_PRICE_CENTS / 100:.2f}",
+            "Product Price": f"${PRODUCT_PRICE_USD:.2f}",
+            "Paystack Amount": f"₦{NGN_PRICE_KOBO / 100:,.2f}",
             "Paystack Reference": reference,
             "Currency": currency,
             "Amount": amount,
@@ -138,10 +142,10 @@ def verify_paystack_payment(reference: str, supabase) -> dict:
     if payment_status != "success":
         return {"success": False, "paid": False, "error": "Payment not successful."}
 
-    if currency != "USD":
+    if currency != "NGN":
         return {"success": False, "paid": False, "error": "Invalid currency. Expected USD."}
 
-    if amount != USD_PRICE_CENTS:
+    if amount != NGN_PRICE_KOBO:
         return {"success": False, "paid": False, "error": "Invalid amount."}
 
     existing = (
