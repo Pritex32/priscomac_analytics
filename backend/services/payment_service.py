@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from backend.utils.database import supabase
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
