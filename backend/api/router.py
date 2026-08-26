@@ -5,7 +5,7 @@ from backend.services.chart_service import build_forecast_chart, build_summary_c
 from backend.services.pdf_service import generate_pdf_report
 from backend.services.excel_service import generate_excel_report
 from backend.services.payment_service import init_paystack_payment, verify_paystack_payment, handle_paystack_webhook
-from backend.utils.database import get_db
+from backend.utils.device import get_device_hash
 import os
 import logging
 import traceback
