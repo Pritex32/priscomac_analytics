@@ -7,6 +7,12 @@ from backend.services.excel_service import generate_excel_report
 from backend.services.payment_service import init_paystack_payment, verify_paystack_payment, handle_paystack_webhook
 from backend.utils.database import get_db
 import os
+import logging
+import traceback
+import requests
+
+logger = logging.getLogger(__name__)
+
 
 
 router = APIRouter()
