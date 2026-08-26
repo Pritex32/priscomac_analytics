@@ -1,6 +1,6 @@
 import os
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from backend.utils.database import get_db
 from backend.utils.device import get_device_hash
@@ -12,7 +12,7 @@ LICENSE_SESSION_HOURS = int(os.getenv("LICENSE_SESSION_HOURS", "24"))
 def create_session_token(license_id: int) -> str:
     payload = {
         "sub": str(license_id),
-        "exp": datetime.utcnow() + timedelta(hours=LICENSE_SESSION_HOURS),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=LICENSE_SESSION_HOURS),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -36,7 +36,7 @@ def verify_license(supabase, license_key: str, device_hash: str) -> Optional[dic
 
     expires_at = license.get("expires_at")
     if expires_at:
-        if datetime.utcnow() > datetime.fromisoformat(expires_at.replace("Z", "+00:00")):
+        if datetime.now(timezone.utc) > datetime.fromisoformat(expires_at.replace("Z", "+00:00")):
             return {"valid": False, "error": "License has expired."}
 
     if not license["demand_forecast_tool"]:
@@ -75,7 +75,7 @@ def check_session(supabase, token: str) -> Optional[dict]:
 
     expires_at = license.get("expires_at")
     if expires_at:
-        if datetime.utcnow() > datetime.fromisoformat(expires_at.replace("Z", "+00:00")):
+        if datetime.now(timezone.utc) > datetime.fromisoformat(expires_at.replace("Z", "+00:00")):
             return None
 
     return {"license_id": license_id, "product": license["product_name"]}
