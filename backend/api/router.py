@@ -38,35 +38,112 @@ def verify_license_endpoint(license_key: str = Form(...)):
         logger.error(f"verify-license error: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="License verification failed.")
 
+
 @router.post("/analyze")
 def analyze_file(
     file: UploadFile = File(...),
     forecast_period: int = Form(30),
-    token: str = Form(...),   
+    token: str = Form(...),
 ):
-    session = get_license_from_token(token, supabase)
-    if not session:
-        raise HTTPException(status_code=401, detail="Invalid or expired session.")
-
-    allowed_ext = {".csv", ".xlsx", ".xls"}
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in allowed_ext:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
-
     try:
-        file_bytes = file.file.read()
-        df = load_file(file_bytes, file.filename)
-        df_clean, cleaning_report = clean_data(df)
-        summary = compute_summary_stats(df_clean)
-        forecast_df, forecast_meta = generate_forecast(df_clean, forecast_period)
-        reorder = recommended_reorder(forecast_df, summary["avg_demand"])
+        # 1. Verify license/session
+        session = get_license_from_token(token, supabase)
 
-        forecast_chart = build_forecast_chart(df_clean, forecast_df)
+        if not session:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired session."
+            )
+
+        # 2. Validate file
+        allowed_ext = {".csv", ".xlsx", ".xls"}
+        ext = os.path.splitext(file.filename)[1].lower()
+
+        if ext not in allowed_ext:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {ext}"
+            )
+
+        logger.info(f"Starting analysis for file: {file.filename}")
+
+        # 3. Read file
+        file_bytes = file.file.read()
+
+        if not file_bytes:
+            raise ValueError("Uploaded file is empty.")
+
+        logger.info(f"File loaded: {file.filename}")
+
+        # 4. Load dataset
+        df = load_file(file_bytes, file.filename)
+
+        logger.info(
+            f"Dataset loaded successfully. "
+            f"Rows: {len(df)}, Columns: {list(df.columns)}"
+        )
+
+        # 5. Clean / identify columns
+        df_clean, cleaning_report = clean_data(df)
+
+        logger.info(
+            f"Data cleaning completed. "
+            f"Rows after cleaning: {len(df_clean)}, "
+            f"Columns: {list(df_clean.columns)}"
+        )
+
+        # 6. Summary
+        summary = compute_summary_stats(df_clean)
+
+        logger.info("Summary statistics generated.")
+
+        # 7. Forecast
+        forecast_df, forecast_meta = generate_forecast(
+            df_clean,
+            forecast_period
+        )
+
+        logger.info(
+            f"Forecast generated using method: "
+            f"{forecast_meta.get('method')}"
+        )
+
+        # 8. Reorder recommendation
+        reorder = recommended_reorder(
+            forecast_df,
+            summary["avg_demand"]
+        )
+
+        logger.info("Reorder recommendation generated.")
+
+        # 9. Charts
+        forecast_chart = build_forecast_chart(
+            df_clean,
+            forecast_df
+        )
+
         summary_chart = build_summary_chart(summary)
 
-        pdf_bytes = generate_pdf_report(summary, forecast_meta, reorder, forecast_meta["method"])
-        excel_bytes = generate_excel_report(df_clean, forecast_df, summary, reorder)
+        logger.info("Charts generated.")
 
+        # 10. Reports
+        pdf_bytes = generate_pdf_report(
+            summary,
+            forecast_meta,
+            reorder,
+            forecast_meta["method"]
+        )
+
+        excel_bytes = generate_excel_report(
+            df_clean,
+            forecast_df,
+            summary,
+            reorder
+        )
+
+        logger.info("PDF and Excel reports generated.")
+
+        # 11. Return result
         return {
             "success": True,
             "summary": summary,
@@ -78,11 +155,30 @@ def analyze_file(
                 "forecast": forecast_chart,
                 "summary": summary_chart,
             },
-            "pdf_base64": __import__("base64").b64encode(pdf_bytes).decode("utf-8"),
-            "excel_base64": __import__("base64").b64encode(excel_bytes).decode("utf-8"),
+            "pdf_base64": __import__("base64")
+                .b64encode(pdf_bytes)
+                .decode("utf-8"),
+            "excel_base64": __import__("base64")
+                .b64encode(excel_bytes)
+                .decode("utf-8"),
         }
+
+    except HTTPException:
+        # Keep intentional HTTP errors such as 400/401/403
+        # instead of converting them to 500.
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # THIS is the important part
+        logger.error(
+            f"ANALYZE ERROR: {str(e)}\n"
+            f"{traceback.format_exc()}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analysis failed: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.post("/paystack/init")
