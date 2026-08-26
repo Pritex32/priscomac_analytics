@@ -6,6 +6,7 @@ from backend.services.pdf_service import generate_pdf_report
 from backend.services.excel_service import generate_excel_report
 from backend.services.payment_service import init_paystack_payment, verify_paystack_payment, handle_paystack_webhook
 from backend.utils.device import get_device_hash
+from backend.utils.database import supabase
 import os
 import logging
 import traceback
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
+get_db=supabase
 
 def get_license_from_token(token: str, supabase):
     session = check_session(supabase, token)
