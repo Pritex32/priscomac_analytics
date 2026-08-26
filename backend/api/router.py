@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
-get_db=supabase
+
 
 def get_license_from_token(token: str, supabase):
     session = check_session(supabase, token)
@@ -26,7 +26,7 @@ def get_license_from_token(token: str, supabase):
     return session
 
 @router.post("/verify-license")
-def verify_license_endpoint(license_key: str = Form(...), supabase = Depends(get_db)):
+def verify_license_endpoint(license_key: str = Form(...)):
     try:
         from utils.device import get_device_hash
         device_hash = get_device_hash()
@@ -42,8 +42,7 @@ def verify_license_endpoint(license_key: str = Form(...), supabase = Depends(get
 def analyze_file(
     file: UploadFile = File(...),
     forecast_period: int = Form(30),
-    token: str = Form(...),
-    supabase = Depends(get_db)
+    token: str = Form(...),   
 ):
     session = get_license_from_token(token, supabase)
     if not session:
@@ -87,7 +86,7 @@ def analyze_file(
 
 
 @router.post("/paystack/init")
-def paystack_init(email: str = Form(...), supabase = Depends(get_db)):
+def paystack_init(email: str = Form(...)):
     try:
         result = init_paystack_payment(email)
         return result
@@ -98,7 +97,7 @@ def paystack_init(email: str = Form(...), supabase = Depends(get_db)):
 
 
 @router.get("/paystack/verify/{reference}")
-def paystack_verify(reference: str, supabase = Depends(get_db)):
+def paystack_verify(reference: str):
     try:
         result = verify_paystack_payment(reference, supabase)
         return result
@@ -109,7 +108,7 @@ def paystack_verify(reference: str, supabase = Depends(get_db)):
 
 
 @router.post("/paystack/webhook")
-async def paystack_webhook(request: Request, supabase = Depends(get_db)):
+async def paystack_webhook(request: Request):
     try:
         payload = await request.json()
     except Exception:
