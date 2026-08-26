@@ -3,6 +3,7 @@ import secrets
 import string
 import logging
 import requests
+import traceback
 from datetime import datetime, timedelta
 from typing import Optional
 from backend.utils.database import supabase
