@@ -28,7 +28,7 @@ def get_license_from_token(token: str, supabase):
 @router.post("/verify-license")
 def verify_license_endpoint(license_key: str = Form(...)):
     try:
-        from utils.device import get_device_hash
+       
         device_hash = get_device_hash()
         result = verify_license(supabase, license_key, device_hash)
         if not result["valid"]:
