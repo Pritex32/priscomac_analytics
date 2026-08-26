@@ -19,12 +19,16 @@ def get_license_from_token(token: str, supabase):
 
 @router.post("/verify-license")
 def verify_license_endpoint(license_key: str = Form(...), supabase = Depends(get_db)):
-    from utils.device import get_device_hash
-    device_hash = get_device_hash()
-    result = verify_license(supabase, license_key, device_hash)
-    if not result["valid"]:
-        raise HTTPException(status_code=403, detail=result["error"])
-    return result
+    try:
+        from utils.device import get_device_hash
+        device_hash = get_device_hash()
+        result = verify_license(supabase, license_key, device_hash)
+        if not result["valid"]:
+            raise HTTPException(status_code=403, detail=result["error"])
+        return result
+    except Exception as e:
+        logger.error(f"verify-license error: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="License verification failed.")
 
 @router.post("/analyze")
 def analyze_file(
